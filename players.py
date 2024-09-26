@@ -1,6 +1,7 @@
 from __future__ import annotations
 from abc import abstractmethod
 import numpy as np
+import tree
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from heuristics import Heuristic
@@ -83,9 +84,12 @@ class MinMaxPlayer(PlayerController):
         # INT: use the functions on the 'board' object to produce a new board given a specific move
         # HINT: use the functions on the 'heuristic' object to produce evaluations for the different board states!
 
-
-
         
+        game_tree = tree.Tree()
+        game_tree.setKey = board
+        val = self.miniMax(self, game_tree, self.depth, True)
+        
+        return val
         # Example:
         max_value: float = -np.inf # negative infinity
         max_move: int = 0
@@ -104,6 +108,32 @@ class MinMaxPlayer(PlayerController):
         # Then, use the minmax algorithm to search through this tree to find the best move/action to take!
 
         return max_move
+    
+    def miniMax(self, game_tree, depth, maximizingPlayer):
+        board = game_tree.getKey()
+        if depth == 0:
+            return self.heuristic.evaluate_board(self.player_id, board)
+        if maximizingPlayer:
+            max_value = float('inf')
+            for col in range(board.width):
+                new_node = tree.Tree()
+                if board.is_valid(col):
+                    new_node.setKey(board.get_new_board(col, self.player_id))
+                    value = self.miniMax(new_node, depth-1, False)
+                    new_node.setVal(value)
+                    max_value = max(max_value, value)
+                game_tree.append(new_node)
+        else:
+            min_value = float('-inf')
+            for col in range(board.width):
+                new_node = tree.Tree()
+                if board.is_valid(col):
+                    new_node.setKey(board.get_new_board(col, self.player_id))
+                    value = self.miniMax(new_node, depth-1, False)
+                    new_node.setVal(value)
+                    max_value = max(max_value, value)
+                game_tree.append(new_node)
+                
     
 
 class AlphaBetaPlayer(PlayerController):
