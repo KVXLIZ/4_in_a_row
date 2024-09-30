@@ -85,11 +85,14 @@ class MinMaxPlayer(PlayerController):
         # HINT: use the functions on the 'heuristic' object to produce evaluations for the different board states!
 
         
-        game_tree = tree.Tree()
-        game_tree.setKey = board
-        val = self.miniMax(self, game_tree, self.depth, True)
-        
-        return val
+        game_tree = tree.Tree(board.width)
+        game_tree.key = board
+        value = self.miniMax(game_tree, self.depth, True)
+        print(value)
+        for col in range(board.width):
+            if game_tree.children[col] and game_tree.children[col].val == value:
+                return col
+        """
         # Example:
         max_value: float = -np.inf # negative infinity
         max_move: int = 0
@@ -108,31 +111,35 @@ class MinMaxPlayer(PlayerController):
         # Then, use the minmax algorithm to search through this tree to find the best move/action to take!
 
         return max_move
+        """
     
     def miniMax(self, game_tree, depth, maximizingPlayer):
-        board = game_tree.getKey()
+        board = game_tree.key
         if depth == 0:
-            return self.heuristic.evaluate_board(self.player_id, board)
+            value = self.heuristic.evaluate_board(self.player_id, board)
+            return value
         if maximizingPlayer:
-            max_value = float('inf')
+            max_value = -np.inf
             for col in range(board.width):
-                new_node = tree.Tree()
+                new_node = tree.Tree(board.width)
                 if board.is_valid(col):
-                    new_node.setKey(board.get_new_board(col, self.player_id))
+                    new_node.key = board.get_new_board(col, self.player_id)
                     value = self.miniMax(new_node, depth-1, False)
-                    new_node.setVal(value)
+                    new_node.val = value
                     max_value = max(max_value, value)
-                game_tree.append(new_node)
+                game_tree.children[col] = new_node
+            return max_value
         else:
-            min_value = float('-inf')
+            min_value = np.inf
             for col in range(board.width):
-                new_node = tree.Tree()
+                new_node = tree.Tree(board.width)
                 if board.is_valid(col):
-                    new_node.setKey(board.get_new_board(col, self.player_id))
-                    value = self.miniMax(new_node, depth-1, False)
-                    new_node.setVal(value)
-                    max_value = max(max_value, value)
-                game_tree.append(new_node)
+                    new_node.key = board.get_new_board(col, self.player_id-1)
+                    value = self.miniMax(new_node, depth-1, True)
+                    new_node.val = value
+                    min_value = min(min_value, value)
+                game_tree.children[col] = new_node
+            return min_value
                 
     
 
