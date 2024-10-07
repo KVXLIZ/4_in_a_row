@@ -1,6 +1,7 @@
 from __future__ import annotations
 from abc import abstractmethod
 import numpy as np
+from random import choice
 import tree
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -87,11 +88,12 @@ class MinMaxPlayer(PlayerController):
         
         game_tree = tree.Tree(board.width)
         game_tree.key = board
-        value = self.miniMax(game_tree, self.depth, True)
-        print(value)
+        value  = self.miniMax(game_tree, self.depth, True)
+        best_moves = []
         for col in range(board.width):
-            if game_tree.children[col] and game_tree.children[col].val == value:
-                return col
+            if game_tree.children[col].val == value:
+                best_moves.append(col)
+        return choice(best_moves) 
         """
         # Example:
         max_value: float = -np.inf # negative infinity
@@ -115,9 +117,8 @@ class MinMaxPlayer(PlayerController):
     
     def miniMax(self, game_tree, depth, maximizingPlayer):
         board = game_tree.key
-        if depth == 0:
-            value = self.heuristic.evaluate_board(self.player_id, board)
-            return value
+        if depth == 0 or self.heuristic.winning(board.get_board_state(), self.game_n):
+            return self.heuristic.evaluate_board(self.player_id, board)
         if maximizingPlayer:
             max_value = -np.inf
             for col in range(board.width):
@@ -134,8 +135,8 @@ class MinMaxPlayer(PlayerController):
             for col in range(board.width):
                 new_node = tree.Tree(board.width)
                 if board.is_valid(col):
-                    new_node.key = board.get_new_board(col, self.player_id-1)
-                    value = self.miniMax(new_node, depth-1, True)
+                    new_node.key = board.get_new_board(col, switchPlayer(self.player_id))
+                    value= self.miniMax(new_node, depth-1, True)
                     new_node.val = value
                     min_value = min(min_value, value)
                 game_tree.children[col] = new_node
@@ -168,9 +169,56 @@ class AlphaBetaPlayer(PlayerController):
         Returns:
             int: column to play in
         """
+        game_tree = tree.Tree(board.width)
+        game_tree.key = board
+        value = self.alphaBeta(game_tree, self.depth, -np.inf, np.inf, True)
+        best_move = []
+        for col in range(board.width):
+            if value == game_tree.children[col].val:
+                best_move.append(col)
+        return choice(best_move)
+                
+    def alphaBeta(self, game_tree, depth, alpha, beta, maximizingPlayer):
+        board = game_tree.key
+        if depth == 0 or self.heuristic.winning(board.get_board_state(), self.game_n) != 0:
+            return self.heuristic.evaluate_board(self.player_id, board)
+        if maximizingPlayer:
+            value = -np.inf
+            for col in range(board.width):
+                new_node = tree.Tree(board.width)
+                if board.is_valid(col):
+                    new_board = board.get_new_board(col, self.player_id)
+                    new_node.key = new_board
+                    new_val = self.alphaBeta(new_node, depth-1, alpha, beta, False)
+                    value = max(value, new_val)
+                    new_node.val = new_val
+                    if value > beta:
+                        break
+                    alpha = max(alpha, value)
+                game_tree.children[col] = new_node
+            return value
+        else:
+            value = np.inf
+            for col in range(board.width):
+                new_node = tree.Tree(board.width)
+                if board.is_valid(col):
+                    new_board = board.get_new_board(col, switchPlayer(self.player_id))
+                    new_node.key = new_board
+                    game_tree.children[col] = new_node
+                    new_val = self.alphaBeta(new_node, depth-1, alpha, beta, True)
+                    value = min(value, new_val)
+                    new_node.val = new_val
+                    if value < alpha:
+                        break
+                    beta = min(beta, value)
+                game_tree.children[col] = new_node
+            return value
 
-        # TODO: implement minmax algorithm with alpha beta pruning!
-        return 0
+def switchPlayer(player_id):
+    if player_id == 1:
+        return 2
+    else:
+        return 1
 
 
 class HumanPlayer(PlayerController):
