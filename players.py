@@ -174,7 +174,7 @@ class AlphaBetaPlayer(PlayerController):
         value = self.alphaBeta(game_tree, self.depth, -np.inf, np.inf, True)
         best_move = []
         for col in range(board.width):
-            if value == game_tree.children[col].val:
+            if value+1 == game_tree.children[col].val:
                 best_move.append(col)
         return choice(best_move)
                 
@@ -196,7 +196,7 @@ class AlphaBetaPlayer(PlayerController):
                         break
                     alpha = max(alpha, value)
                 game_tree.children[col] = new_node
-            return value
+            return value-1
         else:
             value = np.inf
             for col in range(board.width):
@@ -212,7 +212,7 @@ class AlphaBetaPlayer(PlayerController):
                         break
                     beta = min(beta, value)
                 game_tree.children[col] = new_node
-            return value
+            return value-1
 
 def switchPlayer(player_id):
     if player_id == 1:
