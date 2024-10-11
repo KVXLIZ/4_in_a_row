@@ -1,3 +1,5 @@
+
+# Tree structure for storing the board states
 class Tree:
     def __init__(self, cols):
         self.key = None

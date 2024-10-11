@@ -181,3 +181,4 @@ class SimpleHeuristic(Heuristic):
                         break
 
         return max_in_row
+    

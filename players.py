@@ -81,19 +81,21 @@ class MinMaxPlayer(PlayerController):
             int: column to play in
         """
 
-        # TODO: implement minmax algortihm!
-        # INT: use the functions on the 'board' object to produce a new board given a specific move
-        # HINT: use the functions on the 'heuristic' object to produce evaluations for the different board states!
-
-        
+        # Initialize a tree structure for the current board state
         game_tree = tree.Tree(board.width)
         game_tree.key = board
-        value  = self.miniMax(game_tree, self.depth, True)
+
+        # Get the value of the board
+        value = self.miniMax(game_tree, self.depth, True)
         best_moves = []
+
+        # Iterate through all the available moves to find the best valued ones and store them in a list
         for col in range(board.width):
-            if game_tree.children[col].val == value:
+            if value == game_tree.children[col].val:
                 best_moves.append(col)
-        return choice(best_moves) 
+        
+        # Return a random best move
+        return choice(best_moves)
         """
         # Example:
         max_value: float = -np.inf # negative infinity
@@ -115,32 +117,48 @@ class MinMaxPlayer(PlayerController):
         return max_move
         """
     
-    def miniMax(self, game_tree, depth, maximizingPlayer):
-        board = game_tree.key
-        if depth == 0 or self.heuristic.winning(board.get_board_state(), self.game_n):
+    def miniMax(self, game_tree, depth, maximizingPlayer): 
+        board = game_tree.key # Get the current board state
+
+        # Check for win
+        if self.heuristic.winning(board.get_board_state(), self.game_n) > 0:
+            # Return the board value adjusted for depth for quicker wins
+            return self.heuristic.evaluate_board(self.player_id, board)-self.game_n+depth
+        # If maximum depth has been reached or dra happened evaluate the board
+        if depth == 0 or self.heuristic.winning(board.get_board_state(), self.game_n) == -1:
             return self.heuristic.evaluate_board(self.player_id, board)
-        if maximizingPlayer:
-            max_value = -np.inf
+        
+        # Maximizing player tries to get the highest score
+        if maximizingPlayer: 
+            value = -np.inf # Initialize value to negative infinity
             for col in range(board.width):
-                new_node = tree.Tree(board.width)
+                new_node = tree.Tree(board.width) # Create new tree node
                 if board.is_valid(col):
+                    # Get the new board after making a move in the chosen column
                     new_node.key = board.get_new_board(col, self.player_id)
-                    value = self.miniMax(new_node, depth-1, False)
-                    new_node.val = value
-                    max_value = max(max_value, value)
+
+                    # Calculate the value of the new board recursively
+                    new_val = self.miniMax(new_node, depth-1, False)
+                    value = max(value, new_val) # Update the maximum value
+                    new_node.val = new_val # Store the new value in a node
+                # Add the new node to the tree
                 game_tree.children[col] = new_node
-            return max_value
-        else:
-            min_value = np.inf
+            return value
+        else: # Minimizing player tries to get the lowest score
+            value = np.inf # Initialize value to infinity
             for col in range(board.width):
-                new_node = tree.Tree(board.width)
+                new_node = tree.Tree(board.width) # Create a new tree node
                 if board.is_valid(col):
-                    new_node.key = board.get_new_board(col, switchPlayer(self.player_id))
-                    value= self.miniMax(new_node, depth-1, True)
-                    new_node.val = value
-                    min_value = min(min_value, value)
+                    # Get the new board after making a move in the chosen column
+                    new_node.key = board.get_new_board(col, self.player_id%2+1)
+
+                    # Calculate the value of the new board
+                    new_val = self.miniMax(new_node, depth-1, True)
+                    value = min(new_val, value) # Update the minimum value
+                    new_node.val = new_val # Store the new value in a node
+                # Add the new node to the tree
                 game_tree.children[col] = new_node
-            return min_value
+            return value
                 
     
 
@@ -169,56 +187,73 @@ class AlphaBetaPlayer(PlayerController):
         Returns:
             int: column to play in
         """
+        # Initialize a tree structure for the current board state
         game_tree = tree.Tree(board.width)
         game_tree.key = board
+
+        # Get the value of the board
         value = self.alphaBeta(game_tree, self.depth, -np.inf, np.inf, True)
-        best_move = []
+        best_moves = []
+
+        # Iterate through all the available moves to find the best valued ones and store them in a list
         for col in range(board.width):
-            if value+1 == game_tree.children[col].val:
-                best_move.append(col)
-        return choice(best_move)
+            if value == game_tree.children[col].val:
+                best_moves.append(col)
+        
+        # Return a random best move
+        return choice(best_moves)
                 
     def alphaBeta(self, game_tree, depth, alpha, beta, maximizingPlayer):
-        board = game_tree.key
-        if depth == 0 or self.heuristic.winning(board.get_board_state(), self.game_n) != 0:
+        board = game_tree.key # Get the current board state
+
+        # Check for win
+        if self.heuristic.winning(board.get_board_state(), self.game_n) > 0: 
+            # Return the board value adjusted for depth for quicker wins
+            return self.heuristic.evaluate_board(self.player_id, board)-self.game_n+depth
+        # If maximum depth has been reached or draw happened evaluate the board
+        if depth == 0 or self.heuristic.winning(board.get_board_state(), self.game_n) == -1:
             return self.heuristic.evaluate_board(self.player_id, board)
+        
+        # Maximizing player tries to get the highest score 
         if maximizingPlayer:
-            value = -np.inf
+            value = -np.inf # Initialize value to negative infinity
             for col in range(board.width):
-                new_node = tree.Tree(board.width)
+                new_node = tree.Tree(board.width) # Create new tree node
                 if board.is_valid(col):
-                    new_board = board.get_new_board(col, self.player_id)
-                    new_node.key = new_board
+                    # Get the new board after making a move in the chosen column
+                    new_node.key = board.get_new_board(col, self.player_id)
+
+                    # Calculate the value of the new board recursively
                     new_val = self.alphaBeta(new_node, depth-1, alpha, beta, False)
-                    value = max(value, new_val)
-                    new_node.val = new_val
+                    value = max(value, new_val) # Update the maximum value
+                    new_node.val = new_val # Store the new value in a node
+                    # Beta cut-off
                     if value > beta:
                         break
-                    alpha = max(alpha, value)
+                    alpha = max(alpha, value) # Update alpha for further pruning
+                # Add the new node to the tree
                 game_tree.children[col] = new_node
-            return value-1
-        else:
-            value = np.inf
+            return value
+        else:  # Minimizing player tries to get the lowest score
+            value = np.inf # Initialize the value to infinity
             for col in range(board.width):
-                new_node = tree.Tree(board.width)
+                new_node = tree.Tree(board.width) # Create new tree node
                 if board.is_valid(col):
-                    new_board = board.get_new_board(col, switchPlayer(self.player_id))
-                    new_node.key = new_board
-                    game_tree.children[col] = new_node
+                    # Get the new board after making a move in the chosen column
+                    new_node.key = board.get_new_board(col, self.player_id%2+1)
+
+                    # Calculate the value of the new board recursively
                     new_val = self.alphaBeta(new_node, depth-1, alpha, beta, True)
-                    value = min(value, new_val)
-                    new_node.val = new_val
+                    value = min(value, new_val) # Update the minimum value
+                    new_node.val = new_val # Store the new value in a node
+
+                    # Alpha cut-off
                     if value < alpha:
                         break
-                    beta = min(beta, value)
+                    beta = min(beta, value) # Update beta for further pruning
+                # Add the new node to the tree
                 game_tree.children[col] = new_node
-            return value-1
-
-def switchPlayer(player_id):
-    if player_id == 1:
-        return 2
-    else:
-        return 1
+            return value
 
 
 class HumanPlayer(PlayerController):
